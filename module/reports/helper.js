@@ -361,12 +361,12 @@ module.exports = class ReportsHelper {
                 } 
                 
                 if (userRole != "") {
+                    let regex = userRole.split(",");
+                    regex.push("");
                     query.userRole = {
-                        $in : [
-                            "",
-                            ...userRole.split(",")
-                        ]
-                    }
+                        $regex: regex.join("|"),
+                        $options: "i",
+                    };
                 }
 
                 let searchQuery = [];
