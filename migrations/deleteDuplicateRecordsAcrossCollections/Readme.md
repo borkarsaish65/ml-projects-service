@@ -22,10 +22,28 @@ Run the script to delete duplicate projects.
 
 #### Validation 
 
-After the script has been executed in the staging environment, we can validate the data by utilizing the findDuplicateRecords.js script
+After the script has been executed in the staging environment, we can validate the data by 
+using the generated `successfully_deleted_duplicated_records.json` file.
 
-Run the script to delete duplicate projects.
+Retrieve the project IDs from `successfully_deleted_duplicated_records.json` and include them in the body of the DBfind API request as follows.
 
-    node findDuplicateRecords.js
+        {
+          "query": {
+              "_id": {
+                  "$in": [
+                      // Add project ids here
+                      ]
+                    }
+          },
+          "mongoIdKeys": [
+              "_id"
+          ],
+          "projection": [
 
-This script will log if there are duplicates present or not present in the database.
+          ],
+          "limit": 200,
+          "skip": 0
+      }
+
+If no records are found that means all the duplicate records have been deleted and the 
+script execution was successful.

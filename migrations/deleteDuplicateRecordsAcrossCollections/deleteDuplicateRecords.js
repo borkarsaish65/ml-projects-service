@@ -60,7 +60,7 @@ function generateUUId() {
       .aggregate(pipeline)
       .toArray();
 
-    let duplicateProjectsChunk = _.chunk(duplicateArray,10);
+    let duplicateProjectsChunk = _.chunk(duplicateArray,100);
     let successfullyDeletedRecords = [];
     let failedToDeletedRecords = [];
 
@@ -136,10 +136,10 @@ function generateUUId() {
                         
                         if(result.deletedCount == 1)
                         {
-                            successfullyDeletedRecords.push(record);
+                            successfullyDeletedRecords.push(record._id);
                         }
                         else{
-                            failedToDeletedRecords.push(record);
+                            failedToDeletedRecords.push(record._id);
                         }
                         
                     }catch(e){
