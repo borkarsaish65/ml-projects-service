@@ -60,96 +60,102 @@ function generateUUId() {
       .aggregate(pipeline)
       .toArray();
 
+    let duplicateProjectsChunk = _.chunk(duplicateArray,10);
     let successfullyDeletedRecords = [];
     let failedToDeletedRecords = [];
-    for (let duplicateRecord of duplicateArray) {
-      try {
 
-        let duplicateArray = duplicateRecord.duplicateArray;
-        let completedProjects = [];
-        let inCompleteProjects = [];
-        let inProgressProjects = [];
-        let toBeDeletedRecords = [];
-
-        for (let i = 0; i < duplicateArray.length; i++) {
-          if (duplicateArray[i].status == "submitted") {
-            completedProjects.push(duplicateArray[i]);
-          } else if (duplicateArray[i].status == "started") {
-            inCompleteProjects.push(duplicateArray[i]);
-          }else if(duplicateArray[i].status == 'inProgress'){
-            inProgressProjects.push(duplicateArray[i])
-          }
-        }
-
-        completedProjects.sort(sortByCreatedAtDescending);
-        inCompleteProjects.sort(sortByCreatedAtDescending);
-        inProgressProjects.sort(sortByCreatedAtDescending);
-
-        if (completedProjects.length > 0) {
-          let firstRecord = completedProjects[0];
-
-          for (let i = 1; i < completedProjects.length; i++) {
-            toBeDeletedRecords.push(completedProjects[i]);
-          }
-
-          for (let i = 0; i < inProgressProjects.length; i++) {
-            toBeDeletedRecords.push(inProgressProjects[i]);
-          }
-
-          for (let i = 0; i < inCompleteProjects.length; i++) {
-            toBeDeletedRecords.push(inCompleteProjects[i]);
-          }
-
-        } else if(inProgressProjects.length > 0){
-            let firstRecord = inProgressProjects[0];
-
-            for (let i = 1; i < inProgressProjects.length; i++) {
+    for(let i=0;i<duplicateProjectsChunk.length;i++)
+      {
+        let currentChunk = duplicateProjectsChunk[i];
+        for (let duplicateRecord of currentChunk) {
+          try {
+    
+            let duplicateArray = duplicateRecord.duplicateArray;
+            let completedProjects = [];
+            let inCompleteProjects = [];
+            let inProgressProjects = [];
+            let toBeDeletedRecords = [];
+    
+            for (let i = 0; i < duplicateArray.length; i++) {
+              if (duplicateArray[i].status == "submitted") {
+                completedProjects.push(duplicateArray[i]);
+              } else if (duplicateArray[i].status == "started") {
+                inCompleteProjects.push(duplicateArray[i]);
+              }else if(duplicateArray[i].status == 'inProgress'){
+                inProgressProjects.push(duplicateArray[i])
+              }
+            }
+    
+            completedProjects.sort(sortByCreatedAtDescending);
+            inCompleteProjects.sort(sortByCreatedAtDescending);
+            inProgressProjects.sort(sortByCreatedAtDescending);
+    
+            if (completedProjects.length > 0) {
+              let firstRecord = completedProjects[0];
+    
+              for (let i = 1; i < completedProjects.length; i++) {
+                toBeDeletedRecords.push(completedProjects[i]);
+              }
+    
+              for (let i = 0; i < inProgressProjects.length; i++) {
                 toBeDeletedRecords.push(inProgressProjects[i]);
               }
-
+    
               for (let i = 0; i < inCompleteProjects.length; i++) {
                 toBeDeletedRecords.push(inCompleteProjects[i]);
               }
-
-        }
-          else if (inCompleteProjects.length > 0) {
-          let firstRecord = inCompleteProjects[0];
-          for (let i = 1; i < inCompleteProjects.length; i++) {
-            toBeDeletedRecords.push(inCompleteProjects[i]);
+    
+            } else if(inProgressProjects.length > 0){
+                let firstRecord = inProgressProjects[0];
+    
+                for (let i = 1; i < inProgressProjects.length; i++) {
+                    toBeDeletedRecords.push(inProgressProjects[i]);
+                  }
+    
+                  for (let i = 0; i < inCompleteProjects.length; i++) {
+                    toBeDeletedRecords.push(inCompleteProjects[i]);
+                  }
+    
+            }
+              else if (inCompleteProjects.length > 0) {
+              let firstRecord = inCompleteProjects[0];
+              for (let i = 1; i < inCompleteProjects.length; i++) {
+                toBeDeletedRecords.push(inCompleteProjects[i]);
+              }
+            }
+    
+            for(let record of toBeDeletedRecords)
+                {
+                    try{
+    
+                        let result = await db
+                        .collection("projects")
+                        .deleteOne({
+                            _id:record._id
+                        })
+                        
+                        if(result.deletedCount == 1)
+                        {
+                            successfullyDeletedRecords.push(record);
+                        }
+                        else{
+                            failedToDeletedRecords.push(record);
+                        }
+                        
+                    }catch(e){
+                        
+                        failedToDeletedRecords.push(record);
+                    }
+    
+                }
+    
+          } catch (e) {
+            console.log(e);
+            continue;
           }
         }
 
-        for(let record of toBeDeletedRecords)
-            {
-                try{
-
-                    let result = await db
-                    .collection("projects")
-                    .deleteOne({
-                        _id:record._id
-                    })
-                    
-                    if(result.deletedCount == 1)
-                    {
-                        successfullyDeletedRecords.push(record);
-                    }
-                    else{
-                        failedToDeletedRecords.push(record);
-                    }
-                    
-                }catch(e){
-                    
-                    failedToDeletedRecords.push(record);
-                }
-
-            }
-
-      } catch (e) {
-        console.log(e);
-        continue;
       }
-    }
-
     fs.writeFileSync('successfully_deleted_duplicated_records' + generateUUId()+'.js',JSON.stringify(successfullyDeletedRecords))
     fs.writeFileSync('failed_to_deleted_duplicated_records' + generateUUId()+'.js',JSON.stringify(failedToDeletedRecords))
     console.log('Script execution completed');
