@@ -2533,12 +2533,17 @@ module.exports = class UserProjectsHelper {
                     }
                     certificateTemplateDetails[0].issuer.kid = CERTIFICATE_ISSUER_KID;
                 }
-                
+                let certificateUserName
+                if(data.userProfile.lastName && data.userProfile.lastName.length > 0){
+                    certificateUserName = `${data.userProfile.firstName} ${data.userProfile.lastName}`
+                }else {
+                    certificateUserName = `${data.userProfile.firstName}`
+                }
                 //create certificate request body 
                 let certificateData = {
                     recipient : {
                         id : data.userId,
-                        name : `${data.userProfile.firstName} ${data.userProfile.lastName}`,
+                        name : certificateUserName,
                         type : data.userProfile.profileUserType.type
                     },
                     templateUrl : data.certificate.templateUrl,
